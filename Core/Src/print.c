@@ -1,5 +1,6 @@
 #include "print.h"
 
+// TODO change this function, to be generic
 void print(uint8_t len, uint16_t *read_temp) {
 	char buf[20];
 	char out_buf[2048] = "";
@@ -15,3 +16,7 @@ void print(uint8_t len, uint16_t *read_temp) {
 	strncat(out_buf, char_to_str, 2);
 	USB_Transmit(out_buf, strlen(out_buf));
 }
+
+// void printcells
+
+// void printtemps
