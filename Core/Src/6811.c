@@ -288,13 +288,13 @@ LTC_SPI_StatusTypeDef Read_Cell_Temps(uint16_t *read_auxiliary) {
 	return ret;
 }
 
-/*
- Starts cell voltage conversion
+/**
+ * Starts cell voltage conversion
+ * @param MD 		ADC Mode
+ * @param DCP		Discharge Permit
+ * @param CH		Cell Channels to be measured
  */
-void LTC_ADCV(uint8_t MD,  // ADC Mode
-		uint8_t DCP, // Discharge Permit
-		uint8_t CH   // Cell Channels to be measured
-		) {
+void LTC_ADCV(uint8_t MD, uint8_t DCP, uint8_t CH) {
 	uint8_t cmd[4];
 	uint16_t cmd_pec;
 	uint8_t md_bits;
