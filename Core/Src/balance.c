@@ -39,7 +39,7 @@ void dischargeAlgo(uint16_t *read_volt, uint8_t total_ic, uint16_t lowest) {
 		uint8_t DCC[12];
 		for (uint8_t cell_idx = 0; cell_idx < NUM_CELL_SERIES_GROUP; cell_idx++) {
 			if (read_volt[dev_idx * NUM_CELL_SERIES_GROUP + cell_idx] - lowest
-					> 50) {
+					> 10) {
 				DCC[cell_idx] = 1;
 			} else {
 				DCC[cell_idx] = 0;
