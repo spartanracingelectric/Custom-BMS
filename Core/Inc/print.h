@@ -9,7 +9,8 @@ extern "C" {
 #include "usb_device.h"
 #include "string.h"
 
-void print(uint8_t num, uint16_t *read_temp);
+void PrintReadings(const char *value_label, uint8_t len, uint16_t *read_values);
+void TimeCheckpointLog(const char *label);
 
 #ifdef __cplusplus
 }
