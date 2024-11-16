@@ -188,20 +188,17 @@ int main(void) {
     Wakeup_Idle();
     LTC_STCOMM(2);
 
-    printf("=======START LOOP========\n");
     /* USER CODE END 2 */
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
     while (1) {
-        printf("========NEW CYCLE=========\n");
         /* USER CODE END WHILE */
 
         /* USER CODE BEGIN 3 */
         GpioFixedToggle(&tp_led_heartbeat, LED_HEARTBEAT_DELAY_MS);
         if (TimerPacket_FixedPulse(&timerpacket_ltc)) {
             // calling all CAN realated methods
-            TimeCheckpointLog("send info to CAN");
             CAN_Send_Safety_Checker(&msg, &modPackInfo, &safetyFaults,
                                     &safetyWarnings, &safetyStates);
             CAN_Send_Cell_Summary(&msg, &modPackInfo);
@@ -209,13 +206,11 @@ int main(void) {
             CAN_Send_Temperature(&msg, modPackInfo.cell_temp);
 
             // reading cell voltages
-            TimeCheckpointLog("read cell volts");
             Wakeup_Sleep();
             Read_Volt(modPackInfo.cell_volt);
             // print("Voltage", NUM_CELLS, (uint16_t*) modPackInfo.cell_volt);
 
             // reading cell temperatures
-            TimeCheckpointLog("read cell temps");
             Wakeup_Sleep();
             for (uint8_t i = tempindex; i < indexpause; i++) {
                 Wakeup_Idle();
@@ -240,12 +235,10 @@ int main(void) {
             // print("Temperature", NUM_THERM_TOTAL, (uint16_t*)
             // modPackInfo.cell_temp);
 
-            TimeCheckpointLog("get cell summary");
             // getting the summary of all cells in the pack
             Cell_Summary(&modPackInfo);
 
             // checking for faults
-            TimeCheckpointLog("check for faults");
             Fault_Warning_State(&modPackInfo, &safetyFaults, &safetyWarnings,
                                 &safetyStates, &low_volt_hysteresis,
                                 &high_volt_hysteresis,
@@ -258,122 +251,121 @@ int main(void) {
             if (safetyFaults == 0 && BALANCE &&
                 ((modPackInfo.cell_volt_highest -
                   modPackInfo.cell_volt_lowest) > 50)) {
-                TimeCheckpointLog("passive balancing");
                 Start_Balance((uint16_t *)modPackInfo.cell_volt, NUM_DEVICES,
                               modPackInfo.cell_volt_lowest);
             } else if (BALANCE) {
-                TimeCheckpointLog("fault occurred end balancing");
                 End_Balance(&safetyFaults);
             }
         }
         /* USER CODE END 3 */
     }
+} 
 
-    /**
-     * @brief System Clock Configuration
-     * @retval None
+/**
+ * @brief System Clock Configuration
+ * @retval None
+ */
+void SystemClock_Config(void) {
+    RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+    RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+    RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+
+    /** Initializes the RCC Oscillators according to the specified
+     * parameters in the RCC_OscInitTypeDef structure.
      */
-    void SystemClock_Config(void) {
-        RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-        RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-        RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
-
-        /** Initializes the RCC Oscillators according to the specified
-         * parameters in the RCC_OscInitTypeDef structure.
-         */
-        RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-        RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-        RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV5;
-        RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-        RCC_OscInitStruct.Prediv1Source = RCC_PREDIV1_SOURCE_PLL2;
-        RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-        RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-        RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
-        RCC_OscInitStruct.PLL2.PLL2State = RCC_PLL2_ON;
-        RCC_OscInitStruct.PLL2.PLL2MUL = RCC_PLL2_MUL8;
-        RCC_OscInitStruct.PLL2.HSEPrediv2Value = RCC_HSE_PREDIV2_DIV5;
-        if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
-            Error_Handler();
-        }
-
-        /** Initializes the CPU, AHB and APB buses clocks
-         */
-        RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK |
-                                      RCC_CLOCKTYPE_SYSCLK |
-                                      RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-        RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-        RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-        RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-        RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-
-        if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) !=
-            HAL_OK) {
-            Error_Handler();
-        }
-        PeriphClkInit.PeriphClockSelection =
-            RCC_PERIPHCLK_ADC | RCC_PERIPHCLK_USB;
-        PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV6;
-        PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLL_DIV3;
-        if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
-            Error_Handler();
-        }
-
-        /** Configure the Systick interrupt time
-         */
-        __HAL_RCC_PLLI2S_ENABLE();
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+    RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+    RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV5;
+    RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+    RCC_OscInitStruct.Prediv1Source = RCC_PREDIV1_SOURCE_PLL2;
+    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+    RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
+    RCC_OscInitStruct.PLL2.PLL2State = RCC_PLL2_ON;
+    RCC_OscInitStruct.PLL2.PLL2MUL = RCC_PLL2_MUL8;
+    RCC_OscInitStruct.PLL2.HSEPrediv2Value = RCC_HSE_PREDIV2_DIV5;
+    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
+        Error_Handler();
     }
 
-    /* USER CODE BEGIN 4 */
-    // Initialize struct values
-    // Will initialize GPIO to LOW!
-    void GpioTimePacket_Init(GpioTimePacket * gtp, GPIO_TypeDef * port,
-                             uint16_t pin) {
-        HAL_GPIO_WritePin(port, pin, GPIO_PIN_RESET);  // Set GPIO LOW
-        gtp->gpio_port = port;
-        gtp->gpio_pin = pin;
-        gtp->ts_prev = 0;  // Init to 0
-        gtp->ts_curr = 0;  // Init to 0
-    }
-    // update_ms = update after X ms
-    void GpioFixedToggle(GpioTimePacket * gtp, uint16_t update_ms) {
-        gtp->ts_curr = HAL_GetTick();  // Record current timestamp
-        if (gtp->ts_curr - gtp->ts_prev > update_ms) {
-            HAL_GPIO_TogglePin(gtp->gpio_port, gtp->gpio_pin);  // Toggle GPIO
-            gtp->ts_prev = gtp->ts_curr;
-        }
-    }
-    // Initialize struct values
-    // Will initialize GPIO to LOW!
-    void TimerPacket_Init(TimerPacket * tp, uint32_t delay) {
-        tp->ts_prev = 0;    // Init to 0
-        tp->ts_curr = 0;    // Init to 0
-        tp->delay = delay;  // Init to user value
-    }
-    // update_ms = update after X ms
-    uint8_t TimerPacket_FixedPulse(TimerPacket * tp) {
-        tp->ts_curr = HAL_GetTick();  // Record current timestamp
-        if (tp->ts_curr - tp->ts_prev > tp->delay) {
-            tp->ts_prev = tp->ts_curr;  // Update prev timestamp to current
-            return 1;                   // Enact event (time interval is a go)
-        }
-        return 0;  // Do not enact event
-    }
-    /* USER CODE END 4 */
-
-    /**
-     * @brief  This function is executed in case of error occurrence.
-     * @retval None
+    /** Initializes the CPU, AHB and APB buses clocks
      */
-    void Error_Handler(void) {
-        /* USER CODE BEGIN Error_Handler_Debug */
-        /* User can add his own implementation to report the HAL error return
-         * state
-         */
-        __disable_irq();
-        while (1) {
-        }
-        /* USER CODE END Error_Handler_Debug */
+    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK |
+                                    RCC_CLOCKTYPE_SYSCLK |
+                                    RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+    RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) !=
+        HAL_OK) {
+        Error_Handler();
     }
+    PeriphClkInit.PeriphClockSelection =
+        RCC_PERIPHCLK_ADC | RCC_PERIPHCLK_USB;
+    PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV6;
+    PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLL_DIV3;
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
+        Error_Handler();
+    }
+
+    /** Configure the Systick interrupt time
+     */
+    __HAL_RCC_PLLI2S_ENABLE();
+}
+
+/* USER CODE BEGIN 4 */
+// Initialize struct values
+// Will initialize GPIO to LOW!
+void GpioTimePacket_Init(GpioTimePacket * gtp, GPIO_TypeDef * port,
+                            uint16_t pin) {
+    HAL_GPIO_WritePin(port, pin, GPIO_PIN_RESET);  // Set GPIO LOW
+    gtp->gpio_port = port;
+    gtp->gpio_pin = pin;
+    gtp->ts_prev = 0;  // Init to 0
+    gtp->ts_curr = 0;  // Init to 0
+}
+// update_ms = update after X ms
+void GpioFixedToggle(GpioTimePacket * gtp, uint16_t update_ms) {
+    gtp->ts_curr = HAL_GetTick();  // Record current timestamp
+    if (gtp->ts_curr - gtp->ts_prev > update_ms) {
+        HAL_GPIO_TogglePin(gtp->gpio_port, gtp->gpio_pin);  // Toggle GPIO
+        gtp->ts_prev = gtp->ts_curr;
+    }
+}
+// Initialize struct values
+// Will initialize GPIO to LOW!
+void TimerPacket_Init(TimerPacket * tp, uint32_t delay) {
+    tp->ts_prev = 0;    // Init to 0
+    tp->ts_curr = 0;    // Init to 0
+    tp->delay = delay;  // Init to user value
+}
+// update_ms = update after X ms
+uint8_t TimerPacket_FixedPulse(TimerPacket * tp) {
+    tp->ts_curr = HAL_GetTick();  // Record current timestamp
+    if (tp->ts_curr - tp->ts_prev > tp->delay) {
+        tp->ts_prev = tp->ts_curr;  // Update prev timestamp to current
+        return 1;                   // Enact event (time interval is a go)
+    }
+    return 0;  // Do not enact event
+}
+/* USER CODE END 4 */
+
+/**
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
+void Error_Handler(void) {
+    /* USER CODE BEGIN Error_Handler_Debug */
+    /* User can add his own implementation to report the HAL error return
+        * state
+        */
+    __disable_irq();
+    while (1) {
+    }
+    /* USER CODE END Error_Handler_Debug */
+}
 
 #ifdef USE_FULL_ASSERT
     /**
