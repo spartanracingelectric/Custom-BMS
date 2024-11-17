@@ -9,8 +9,15 @@ extern "C" {
 #include "usb_device.h"
 #include "string.h"
 
-void PrintReadings(const char *value_label, uint8_t len, uint16_t *read_values);
-void TimeCheckpointLog(const char *label);
+#define USB_BUFFER_SIZE         2048
+
+char usb_transmit_buffer[USB_BUFFER_SIZE]; 
+
+void usb_transmit_voltages(uint8_t volt_count, uint16_t* volt_readings); 
+void usb_transmit_temperatures(uint8_t therm_count, uint16_t* temp_readings); 
+
+void usb_timestamp(char* message, uint32_t timestamp); 
+void clear_buffer(); 
 
 #ifdef __cplusplus
 }

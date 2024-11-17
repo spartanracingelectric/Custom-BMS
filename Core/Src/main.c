@@ -81,8 +81,6 @@ void GpioFixedToggle(GpioTimePacket *gtp, uint16_t update_ms);
 // Returns 1 at every tp->delay interval
 uint8_t TimerPacket_FixedPulse(TimerPacket *tp);
 
-void TimeCheckpointLog(const char *str);
-
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -98,7 +96,7 @@ static uint8_t BMS_MUX_PAUSE[2][6] = {{0x69, 0x28, 0x0F, 0x09, 0x7F, 0xF9},
 int main(void) {
     /* USER CODE BEGIN 1 */
     GpioTimePacket tp_led_heartbeat;
-    TimerPacket timerpacket_ltc;
+    TimerPacket timerpacket_ltc, debug_stopwatch;
 
     struct batteryModule modPackInfo;
     struct CANMessage msg;
@@ -113,7 +111,6 @@ int main(void) {
 
     /* Reset of all peripherals, Initializes the Flash interface and the
      * Systick. */
-    TimeCheckpointLog("reset periphs, init flash and systick");
     HAL_Init();
 
     /* USER CODE BEGIN Init */
@@ -121,7 +118,6 @@ int main(void) {
     /* USER CODE END Init */
 
     /* Configure the system clock */
-    TimeCheckpointLog("configure sys clock");
     SystemClock_Config();
 
     /* USER CODE BEGIN SysInit */
@@ -129,7 +125,6 @@ int main(void) {
     /* USER CODE END SysInit */
 
     /* Initialize all configured peripherals */
-    TimeCheckpointLog("init periphs");
     MX_GPIO_Init();
     MX_ADC1_Init();
     MX_ADC2_Init();
@@ -143,10 +138,13 @@ int main(void) {
     GpioTimePacket_Init(&tp_led_heartbeat, MCU_HEARTBEAT_LED_GPIO_Port,
                         MCU_HEARTBEAT_LED_Pin);
     TimerPacket_Init(&timerpacket_ltc, LTC_DELAY);
+
+    // NOTE for performance measurements. 
+    TimerPacket_Init(&debug_stopwatch, 0);              // added new for debug
+    
     // Pull SPI1 nCS HIGH (deselect)
     LTC_nCS_High();
 
-    TimeCheckpointLog("send fault signal and reset");
     // Sending a fault signal and reseting it
     HAL_GPIO_WritePin(Fault_GPIO_Port, Fault_Pin, GPIO_PIN_SET);
     HAL_Delay(500);
@@ -159,19 +157,21 @@ int main(void) {
     uint8_t high_volt_hysteresis = 0;
     uint8_t cell_imbalance_hysteresis = 0;
 
+    usb_timestamp("prev INIT", HAL_GetTick()); 
+    debug_stopwatch.ts_prev = HAL_GetTick(); 
+
     // reading cell voltages
-    TimeCheckpointLog("read cell volts");
     Wakeup_Sleep();
     Read_Volt(modPackInfo.cell_volt);
 
     // reading cell temperatures
-    TimeCheckpointLog("read cell temps");
     Wakeup_Sleep();
     for (uint8_t i = tempindex; i < indexpause; i++) {
         Wakeup_Idle();
         Read_Temp(i, modPackInfo.cell_temp, modPackInfo.read_auxreg);
         HAL_Delay(50);
     }
+
     Wakeup_Idle();
     LTC_WRCOMM(NUM_DEVICES, BMS_MUX_PAUSE[0]);
     Wakeup_Idle();
@@ -187,6 +187,11 @@ int main(void) {
     LTC_WRCOMM(NUM_DEVICES, BMS_MUX_PAUSE[1]);
     Wakeup_Idle();
     LTC_STCOMM(2);
+
+    debug_stopwatch.ts_curr = HAL_GetTick(); 
+    usb_timestamp("after INIT", debug_stopwatch.ts_curr); 
+    uint32_t elapsed_time = debug_stopwatch.ts_curr - debug_stopwatch.ts_prev; 
+    usb_timestamp("elapsed time for INIT", elapsed_time); 
 
     /* USER CODE END 2 */
 
@@ -209,6 +214,7 @@ int main(void) {
             Wakeup_Sleep();
             Read_Volt(modPackInfo.cell_volt);
             // print("Voltage", NUM_CELLS, (uint16_t*) modPackInfo.cell_volt);
+            usb_transmit_voltages(NUM_CELLS, (uint16_t*)modPackInfo.cell_volt); 
 
             // reading cell temperatures
             Wakeup_Sleep();
@@ -234,6 +240,9 @@ int main(void) {
             }
             // print("Temperature", NUM_THERM_TOTAL, (uint16_t*)
             // modPackInfo.cell_temp);
+            usb_transmit_temperatures(NUM_THERM_TOTAL, modPackInfo.cell_temp); 
+
+            usb_timestamp("temp read over ... begin faults", ); 
 
             // getting the summary of all cells in the pack
             Cell_Summary(&modPackInfo);

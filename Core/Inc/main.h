@@ -60,7 +60,6 @@ struct batteryModule {
 	uint16_t cell_temp_highest;
 	uint32_t pack_voltage;
 	uint16_t read_auxreg[NUM_AUXES];
-
 };
 
 struct CANMessage {

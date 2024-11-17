@@ -2,55 +2,82 @@
 #include "stdint.h"
 #include "time.h"
 
-void AppendLine(char *out_buffer, const char *format_str, ...);
-void TransmitMessage(char *out_buffer);
+void usb_transmit_voltages(uint8_t volt_count, uint16_t* volt_readings) {
+    size_t buffer_index = 0;
 
-/*
- * Log readings from a value list
- */
-void PrintReadings(const char *value_label, uint8_t len,
-                   uint16_t *read_values) {
-    char out_buffer[2048];
-    snprintf(out_buffer, strlen(value_label) + 12, "%s Readings:\n\0",
-             value_label);
+    // Add the header for voltages
+    int written = snprintf(usb_transmit_buffer + buffer_index,
+                           sizeof(usb_transmit_buffer) - buffer_index,
+                           "Voltages:\n");
+    if (written < 0 || buffer_index + written >= sizeof(usb_transmit_buffer)) {
+        return; // Prevent buffer overflow
+    }
+    buffer_index += written;
 
-    for (uint8_t i = 0; i < len; i++) {
-        AppendLine(out_buffer, "C%u: %u", i + 1, read_values[i]);
+    // Iterate through each voltage reading
+    for (uint8_t i = 0; i < volt_count; i++) {
+        uint16_t voltage_mV = volt_readings[i] / 1000; // Compute voltage in millivolts
+
+        // Format the voltage reading with indentation
+        written = snprintf(usb_transmit_buffer + buffer_index,
+                           sizeof(usb_transmit_buffer) - buffer_index,
+                           "\tV%u: %u mV\n", i + 1, voltage_mV);
+
+        // Prevent buffer overflow
+        if (written < 0 || buffer_index + written >= sizeof(usb_transmit_buffer)) {
+            break;
+        }
+        buffer_index += written;
     }
 
-    TransmitMessage(out_buffer);
+    // Transmit the complete buffer and clear it
+    USB_Transmit(usb_transmit_buffer, strlen(usb_transmit_buffer));
+    clear_buffer();
 }
 
-/*
- * Log current time stamp with event label
- */
-void TimeCheckpointLog(const char *label) {
-    char out_buffer[2048];
-    snprintf(out_buffer, strlen(label) + 20, "Checkpoint time for %s: %ds\0\n",
-             label, (double)clock() / CLOCKS_PER_SEC);
-    TransmitMessage(out_buffer);
+void usb_transmit_temperatures(uint8_t therm_count, uint16_t* temp_readings) {
+    size_t buffer_index = 0;
+
+    // Add the header for temperatures
+    int written = snprintf(usb_transmit_buffer + buffer_index,
+                           sizeof(usb_transmit_buffer) - buffer_index,
+                           "Temperatures:\n");
+    if (written < 0 || buffer_index + written >= sizeof(usb_transmit_buffer)) {
+        return; // Prevent buffer overflow
+    }
+    buffer_index += written;
+
+    // Iterate through each temperature reading
+    for (uint8_t i = 0; i < therm_count; i++) {
+        // Format the temperature reading with indentation
+        written = snprintf(usb_transmit_buffer + buffer_index,
+                           sizeof(usb_transmit_buffer) - buffer_index,
+                           "\tT%u: %u °C\n", i + 1, temp_readings[i]);
+
+        // Prevent buffer overflow
+        if (written < 0 || buffer_index + written >= sizeof(usb_transmit_buffer)) {
+            break;
+        }
+        buffer_index += written;
+    }
+
+    // Transmit the complete buffer and clear it
+    USB_Transmit(usb_transmit_buffer, strlen(usb_transmit_buffer));
+    clear_buffer();
 }
 
-/*
- * Append message line to buffer
- */
-void AppendLine(char *out_buffer, const char *format_str,
-                ...) {
-    va_list args;
-    va_start(args, format_str);
-    char buffer[20];
+void usb_timestamp(char* message, uint32_t timestamp) {
 
-    vnsprintf(buffer, 20, format_str, args);
-    strncat(out_buffer, buffer, 20);
-    strncat(out_buffer, "\n\0", 2);
+    snprintf(usb_transmit_buffer, USB_BUFFER_SIZE, 
+        "-------- TIME : %lu  -------- [%s] -------- \r\n", 
+        timestamp, message
+    ); 
 
-    va_end(args);
+    USB_Transmit(usb_transmit_buffer, strlen(usb_transmit_buffer)); 
+
+    clear_buffer(); 
 }
 
-/*
- * Transmit provide message over USB
- */
-void TransmitMessage(char *out_buffer) {
-    strncat(out_buffer, "\n\0", 2);
-    USB_Transmit(out_buffer, strlen(out_buffer));
+void clear_buffer() {
+    memset(usb_transmit_buffer, 0, USB_BUFFER_SIZE); 
 }
