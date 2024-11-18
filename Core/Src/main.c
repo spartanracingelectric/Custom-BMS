@@ -242,7 +242,7 @@ int main(void) {
             // modPackInfo.cell_temp);
             usb_transmit_temperatures(NUM_THERM_TOTAL, modPackInfo.cell_temp); 
 
-            usb_timestamp("temp read over ... begin faults", ); 
+            usb_timestamp("temp read over ... begin fault calc", HAL_GetTick()); 
 
             // getting the summary of all cells in the pack
             Cell_Summary(&modPackInfo);
@@ -255,6 +255,8 @@ int main(void) {
             if (safetyFaults != 0) {
                 HAL_GPIO_WritePin(Fault_GPIO_Port, Fault_Pin, GPIO_PIN_SET);
             }
+
+            usb_timestamp("after fault calc", HAL_GetTick()); 
 
             // Passive balancing is called unless a fault has occurred
             if (safetyFaults == 0 && BALANCE &&
