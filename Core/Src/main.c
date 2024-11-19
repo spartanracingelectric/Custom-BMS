@@ -285,7 +285,7 @@ void GpioFixedToggle(GpioTimePacket *gtp, uint16_t update_ms) {
 void TimerPacket_Init(TimerPacket *tp, uint32_t delay) {
 	tp->ts_prev = 0;		//Init to 0
 	tp->ts_curr = 0; 		//Init to 0
-	tp->delay = delay;	//Init to user value
+	tp->delay = delay;		//Init to user value
 }
 //update_ms = update after X ms
 uint8_t TimerPacket_FixedPulse(TimerPacket *tp) {
