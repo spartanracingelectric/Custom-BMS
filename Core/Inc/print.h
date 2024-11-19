@@ -13,9 +13,9 @@ extern "C" {
 void ITM_Init(void);
 void ITM_SendString(const char* str);
 
-void usb_transmit_voltages(uint8_t volt_count, uint16_t* volt_readings);
-void usb_transmit_temperatures(uint8_t therm_count, uint16_t* temp_readings);
-void usb_timestamp(char* message, uint32_t timestamp);
+// void usb_transmit_voltages(uint8_t volt_count, uint16_t* volt_readings);
+// void usb_transmit_temperatures(uint8_t therm_count, uint16_t* temp_readings);
+// void usb_timestamp(char* message, uint32_t timestamp);
 
 #ifdef __cplusplus
 }
