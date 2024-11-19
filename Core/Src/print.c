@@ -1,16 +1,6 @@
 #include "print.h"
 #include "stm32f1xx.h" // Or the appropriate HAL header for your STM32 family
 
-void ITM_Init(void) {
-    // Enable the ITM and configure it for SWO output
-    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk; // Enable ITM and DWT
-    ITM->LAR = 0xC5ACCE55;                         // Unlock ITM (key for access)
-    ITM->TCR = ITM_TCR_ITMENA_Msk                  // Enable ITM
-               | ITM_TCR_TSENA_Msk                 // Enable timestamps (optional)
-               | ITM_TCR_SWOENA_Msk;               // Enable SWO output
-    ITM->TER = 0x1;                                // Enable stimulus port 0
-}
-
 void ITM_SendString(const char* str) {
     while (*str) {
         if (ITM->PORT[0].u32 == 0) { // Check if the ITM port is ready

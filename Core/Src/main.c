@@ -38,6 +38,7 @@
 #include "safety.h"
 #include "string.h"
 #include "usbd_cdc_if.h"
+#include <stdio.h>
 
 /* USER CODE END Includes */
 
@@ -70,6 +71,13 @@ typedef struct _TimerPacket {
     uint32_t ts_curr;  // Current timestamp
     uint32_t delay;    // Amount to delay
 } TimerPacket;
+
+int _write(int file, char *ptr, int len) {
+    for (int i = 0; i < len; i++) {
+        ITM_SendChar((*ptr++));
+    }
+    return len;
+}
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -96,7 +104,8 @@ static uint8_t BMS_MUX_PAUSE[2][6] = {{0x69, 0x28, 0x0F, 0x09, 0x7F, 0xF9},
 int main(void) {
     /* USER CODE BEGIN 1 */
     GpioTimePacket tp_led_heartbeat;
-    TimerPacket timerpacket_ltc, debug_stopwatch;
+    TimerPacket timerpacket_ltc;
+	TimerPacket timer_init, timer_voltage_measurement, timer_thermister_measurement, timer_fault_calc; 
 
     struct batteryModule modPackInfo;
     struct CANMessage msg;
@@ -140,7 +149,11 @@ int main(void) {
     TimerPacket_Init(&timerpacket_ltc, LTC_DELAY);
 
     // NOTE for performance measurements. 
-    TimerPacket_Init(&debug_stopwatch, 0);              // added new for debug
+    // TimerPacket_Init(&debug_stopwatch, 0);              // added new for debug
+	TimerPacket_Init(&timer_init, 0); 
+	TimerPacket_Init(&timer_voltage_measurement, 0); 
+	TimerPacket_Init(&timer_thermister_measurement, 0); 
+	TimerPacket_Init(&timer_fault_calc, 0); 
     
     // Pull SPI1 nCS HIGH (deselect)
     LTC_nCS_High();
@@ -157,8 +170,7 @@ int main(void) {
     uint8_t high_volt_hysteresis = 0;
     uint8_t cell_imbalance_hysteresis = 0;
 
-    usb_timestamp("prev INIT", HAL_GetTick()); 
-    debug_stopwatch.ts_prev = HAL_GetTick(); 
+	timer_init.ts_prev = HAL_GetTick(); 
 
     // reading cell voltages
     Wakeup_Sleep();
@@ -188,10 +200,8 @@ int main(void) {
     Wakeup_Idle();
     LTC_STCOMM(2);
 
-    debug_stopwatch.ts_curr = HAL_GetTick(); 
-    usb_timestamp("after INIT", debug_stopwatch.ts_curr); 
-    uint32_t elapsed_time = debug_stopwatch.ts_curr - debug_stopwatch.ts_prev; 
-    usb_timestamp("elapsed time for INIT", elapsed_time); 
+    timer_init.ts_curr = HAL_GetTick(); 
+    uint32_t init_elapased_time = timer_init.ts_curr - timer_init.ts_prev; 
 
     /* USER CODE END 2 */
 
@@ -214,7 +224,8 @@ int main(void) {
             Wakeup_Sleep();
             Read_Volt(modPackInfo.cell_volt);
             // print("Voltage", NUM_CELLS, (uint16_t*) modPackInfo.cell_volt);
-            usb_transmit_voltages(NUM_CELLS, (uint16_t*)modPackInfo.cell_volt); 
+            // TODO redefine the following function:
+//            usb_transmit_voltages(NUM_CELLS, (uint16_t*)modPackInfo.cell_volt);
 
             // reading cell temperatures
             Wakeup_Sleep();
@@ -238,11 +249,6 @@ int main(void) {
                 indexpause = 8;
                 tempindex = 0;
             }
-            // print("Temperature", NUM_THERM_TOTAL, (uint16_t*)
-            // modPackInfo.cell_temp);
-            usb_transmit_temperatures(NUM_THERM_TOTAL, modPackInfo.cell_temp); 
-
-            usb_timestamp("temp read over ... begin fault calc", HAL_GetTick()); 
 
             // getting the summary of all cells in the pack
             Cell_Summary(&modPackInfo);
@@ -255,8 +261,6 @@ int main(void) {
             if (safetyFaults != 0) {
                 HAL_GPIO_WritePin(Fault_GPIO_Port, Fault_Pin, GPIO_PIN_SET);
             }
-
-            usb_timestamp("after fault calc", HAL_GetTick()); 
 
             // Passive balancing is called unless a fault has occurred
             if (safetyFaults == 0 && BALANCE &&
