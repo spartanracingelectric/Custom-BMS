@@ -11,8 +11,6 @@ extern "C" {
 
 #define USB_BUFFER_SIZE         2048
 
-char usb_transmit_buffer[USB_BUFFER_SIZE]; 
-
 void usb_transmit_voltages(uint8_t volt_count, uint16_t* volt_readings); 
 void usb_transmit_temperatures(uint8_t therm_count, uint16_t* temp_readings); 
 

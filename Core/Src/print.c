@@ -2,14 +2,16 @@
 #include "stdint.h"
 #include "time.h"
 
+char usb_transmit_buffer[USB_BUFFER_SIZE]; 
+
 void usb_transmit_voltages(uint8_t volt_count, uint16_t* volt_readings) {
     size_t buffer_index = 0;
 
     // Add the header for voltages
     int written = snprintf(usb_transmit_buffer + buffer_index,
-                           sizeof(usb_transmit_buffer) - buffer_index,
+                           USB_BUFFER_SIZE - buffer_index,
                            "Voltages:\n");
-    if (written < 0 || buffer_index + written >= sizeof(usb_transmit_buffer)) {
+    if (written < 0 || buffer_index + written >= USB_BUFFER_SIZE) {
         return; // Prevent buffer overflow
     }
     buffer_index += written;
@@ -20,11 +22,11 @@ void usb_transmit_voltages(uint8_t volt_count, uint16_t* volt_readings) {
 
         // Format the voltage reading with indentation
         written = snprintf(usb_transmit_buffer + buffer_index,
-                           sizeof(usb_transmit_buffer) - buffer_index,
+                           USB_BUFFER_SIZE - buffer_index,
                            "\tV%u: %u mV\n", i + 1, voltage_mV);
 
         // Prevent buffer overflow
-        if (written < 0 || buffer_index + written >= sizeof(usb_transmit_buffer)) {
+        if (written < 0 || buffer_index + written >= USB_BUFFER_SIZE) {
             break;
         }
         buffer_index += written;
@@ -40,9 +42,9 @@ void usb_transmit_temperatures(uint8_t therm_count, uint16_t* temp_readings) {
 
     // Add the header for temperatures
     int written = snprintf(usb_transmit_buffer + buffer_index,
-                           sizeof(usb_transmit_buffer) - buffer_index,
+                           USB_BUFFER_SIZE - buffer_index,
                            "Temperatures:\n");
-    if (written < 0 || buffer_index + written >= sizeof(usb_transmit_buffer)) {
+    if (written < 0 || buffer_index + written >= USB_BUFFER_SIZE) {
         return; // Prevent buffer overflow
     }
     buffer_index += written;
@@ -51,11 +53,11 @@ void usb_transmit_temperatures(uint8_t therm_count, uint16_t* temp_readings) {
     for (uint8_t i = 0; i < therm_count; i++) {
         // Format the temperature reading with indentation
         written = snprintf(usb_transmit_buffer + buffer_index,
-                           sizeof(usb_transmit_buffer) - buffer_index,
+                           USB_BUFFER_SIZE - buffer_index,
                            "\tT%u: %u °C\n", i + 1, temp_readings[i]);
 
         // Prevent buffer overflow
-        if (written < 0 || buffer_index + written >= sizeof(usb_transmit_buffer)) {
+        if (written < 0 || buffer_index + written >= USB_BUFFER_SIZE) {
             break;
         }
         buffer_index += written;
