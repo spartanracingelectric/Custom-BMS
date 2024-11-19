@@ -5,21 +5,23 @@
 extern "C" {
 #endif
 
-#include "print.h"
-#include "usb_device.h"
+#include "stdint.h"
 #include "string.h"
 
-#define USB_BUFFER_SIZE         2048
+// Buffer size for USB transmission
+#define USB_BUFFER_SIZE 2048
 
+// Function prototypes
 void usb_transmit_voltages(uint8_t volt_count, uint16_t* volt_readings); 
 void usb_transmit_temperatures(uint8_t therm_count, uint16_t* temp_readings); 
-
 void usb_timestamp(char* message, uint32_t timestamp); 
 void clear_buffer(); 
+
+// ITM debug output
+int ITM_debug_write(const char* format, ...);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __PRINT_H__ */
-
+#endif /* INC_PRINT_H_ */
