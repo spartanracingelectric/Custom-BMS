@@ -105,13 +105,15 @@ int main(void) {
     /* USER CODE BEGIN 1 */
     GpioTimePacket tp_led_heartbeat;
     TimerPacket timerpacket_ltc;
-	TimerPacket timer_init, timer_voltage_measurement, timer_thermister_measurement, timer_fault_calc; 
+	TimerPacket timer_init, timer_voltage_measurement, timer_thermister_measurement, total_loop_measurement; 
 
     struct batteryModule modPackInfo;
     struct CANMessage msg;
     uint8_t safetyFaults = 0;
     uint8_t safetyWarnings = 0;
     uint8_t safetyStates = 0;
+    volatile uint32_t init_time, volt_time, therm_time, totol_loop_time; 
+    volatile uint32_t ftime; 
 
     /* USER CODE END 1 */
 
@@ -153,7 +155,7 @@ int main(void) {
 	TimerPacket_Init(&timer_init, 0); 
 	TimerPacket_Init(&timer_voltage_measurement, 0); 
 	TimerPacket_Init(&timer_thermister_measurement, 0); 
-	TimerPacket_Init(&timer_fault_calc, 0); 
+	TimerPacket_Init(&total_loop_measurement, 0); 
     
     // Pull SPI1 nCS HIGH (deselect)
     LTC_nCS_High();
@@ -213,6 +215,7 @@ int main(void) {
         /* USER CODE BEGIN 3 */
         GpioFixedToggle(&tp_led_heartbeat, LED_HEARTBEAT_DELAY_MS);
         if (TimerPacket_FixedPulse(&timerpacket_ltc)) {
+            total_loop_measurement.ts_prev = HAL_GetTick(); 
             // calling all CAN realated methods
             CAN_Send_Safety_Checker(&msg, &modPackInfo, &safetyFaults,
                                     &safetyWarnings, &safetyStates);
@@ -221,13 +224,20 @@ int main(void) {
             CAN_Send_Temperature(&msg, modPackInfo.cell_temp);
 
             // reading cell voltages
+            timer_voltage_measurement.ts_prev = HAL_GetTick(); 
+
             Wakeup_Sleep();
             Read_Volt(modPackInfo.cell_volt);
+
+            timer_voltage_measurement.ts_curr = HAL_GetTick(); 
+
             // print("Voltage", NUM_CELLS, (uint16_t*) modPackInfo.cell_volt);
             // TODO redefine the following function:
 //            usb_transmit_voltages(NUM_CELLS, (uint16_t*)modPackInfo.cell_volt);
 
             // reading cell temperatures
+            timer_thermister_measurement.ts_prev = HAL_GetTick(); 
+
             Wakeup_Sleep();
             for (uint8_t i = tempindex; i < indexpause; i++) {
                 Wakeup_Idle();
@@ -250,6 +260,8 @@ int main(void) {
                 tempindex = 0;
             }
 
+            timer_thermister_measurement.ts_curr = HAL_GetTick(); 
+
             // getting the summary of all cells in the pack
             Cell_Summary(&modPackInfo);
 
@@ -271,7 +283,17 @@ int main(void) {
             } else if (BALANCE) {
                 End_Balance(&safetyFaults);
             }
+
+            total_loop_measurement.ts_curr = HAL_GetTick(); 
+
+            // timer calculation
+            init_time = timer_init.ts_curr - timer_init.ts_prev; 
+            volt_time = timer_voltage_measurement.ts_curr - timer_voltage_measurement.ts_prev; 
+            therm_time = timer_thermister_measurement.ts_curr - timer_thermister_measurement.ts_prev; 
+            totol_loop_time = total_loop_measurement.ts_curr - total_loop_measurement.ts_prev; 
+            ftime = HAL_GetTick(); 
         }
+
         /* USER CODE END 3 */
     }
 } 

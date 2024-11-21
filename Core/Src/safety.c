@@ -53,7 +53,6 @@ void Cell_Summary(struct batteryModule *batt) {
 			batt->cell_temp_lowest = batt->cell_temp[i];
 		}
 	}
-
 }
 
 void Fault_Warning_State(struct batteryModule *batt, uint8_t *fault,
