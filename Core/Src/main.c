@@ -95,6 +95,13 @@ uint8_t TimerPacket_FixedPulse(TimerPacket *tp);
 /* USER CODE BEGIN 0 */
 static uint8_t BMS_MUX_PAUSE[2][6] = {{0x69, 0x28, 0x0F, 0x09, 0x7F, 0xF9},
                                       {0x69, 0x08, 0x0F, 0x09, 0x7F, 0xF9}};
+                                
+void NVIC_Init(void);
+
+void NVIC_init(void) {
+    HAL_NVIC_SetPriority(TIMx_IRQHandler, 0, 0); 
+    HAL_NVIC_EnableIRQ(TIMx_IRQHandler); 
+}
 /* USER CODE END 0 */
 
 /**
@@ -143,6 +150,7 @@ int main(void) {
     MX_SPI1_Init();
     MX_USB_DEVICE_Init();
     MX_CAN2_Init();
+    NVIC_init(); 
     /* USER CODE BEGIN 2 */
     CAN_SettingsInit(&msg);  // Start CAN at 0x00
     // Start timer
