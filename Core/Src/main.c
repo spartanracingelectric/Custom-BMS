@@ -109,9 +109,9 @@ int main(void) {
 
     struct batteryModule modPackInfo;
     struct CANMessage msg;
-    uint8_t safetyFaults = 0;
-    uint8_t safetyWarnings = 0;
-    uint8_t safetyStates = 0;
+    volatile uint8_t safetyFaults = 0;
+    volatile uint8_t safetyWarnings = 0;
+    volatile uint8_t safetyStates = 0;
     volatile uint32_t init_time, volt_time, therm_time, totol_loop_time; 
     volatile uint32_t ftime; 
 
@@ -353,7 +353,25 @@ void SystemClock_Config(void) {
 }
 
 /* USER CODE BEGIN 4 */
-// Initialize struct values
+void TIMx_IRQHandler(void) {
+    static uint8_t prev_safetyFaults_nonzero = 0;
+
+    if (__HAL_TIM_GET_FLAG(&htimx, TIM_FLAG_UPDATE)) {
+        __HAL_TIM_CLEAR_FLAG(&htimx, TIM_FLAG_UPDATE);
+
+        if (safetyFaults != 0) {
+            if (prev_safetyFaults_nonzero) {
+                HAL_GPIO_WritePin(Fault_GPIO_Port, Fault_Pin, GPIO_PIN_SET); // Send fault signal
+            } else {
+                prev_safetyFaults_nonzero = 1;
+            }
+        } else {
+            prev_safetyFaults_nonzero = 0;
+            HAL_GPIO_WritePin(Fault_GPIO_Port, Fault_Pin, GPIO_PIN_RESET); // Clear fault signal
+        }
+    }
+}
+
 // Will initialize GPIO to LOW!
 void GpioTimePacket_Init(GpioTimePacket * gtp, GPIO_TypeDef * port,
                             uint16_t pin) {
